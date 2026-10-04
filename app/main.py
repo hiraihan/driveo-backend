@@ -17,3 +17,9 @@ app.include_router(availability_router, prefix="/availability", tags=["availabil
 app.include_router(listing_router, prefix="/listings", tags=["listings"])
 app.include_router(search_router, prefix="/search", tags=["search"])
 app.include_router(booking_router, prefix="/bookings", tags=["bookings"])
+
+from app.core.database import engine, Base
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
