@@ -25,3 +25,12 @@ class RentalStaff(Base):
     rental_id = Column(String(36), index=True)
     user_id = Column(String(36), index=True)
     role = Column(String) # Admin/Staff
+
+class RentalVerification(Base):
+    __tablename__ = "rental_verifications"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    rental_id = Column(String(36), index=True)
+    hasil = Column(String) # LOLOS / DITOLAK
+    alasan = Column(String, nullable=True)
+    reviewer_id = Column(String(36))
+    timestamp = Column(DateTime, default=func.now())

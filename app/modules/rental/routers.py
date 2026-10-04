@@ -1,3 +1,4 @@
+from sqlalchemy.future import select
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -31,3 +32,31 @@ async def onboard_rental(req: OnboardRequest, current_user: dict = Depends(get_c
     await db.commit()
     
     return {"id": rental.id, "nama_usaha": rental.nama_usaha, "status": rental.status_verifikasi}
+from app.modules.rental.models import RentalVerification
+from app.mocks.ports import MockAuditPort
+
+class VerifyRequest(BaseModel):
+    status: str
+    alasan: str
+
+@router.post("/{rental_id}/verify")
+async def verify_rental(rental_id: str, req: VerifyRequest, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.get("role") != "Admin":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+    result = await db.execute(select(Rental).where(Rental.id == rental_id))
+    rental = result.scalars().first()
+    if not rental:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Rental not found")
+        
+    rental.status_verifikasi = req.status
+    verif = RentalVerification(rental_id=rental.id, hasil=req.status, alasan=req.alasan, reviewer_id=current_user["sub"])
+    db.add(verif)
+    await db.commit()
+    
+    audit_port = MockAuditPort()
+    audit_port.log_event("RENTAL_VERIFIED", {"rental_id": rental.id, "status": req.status, "reviewer": current_user["sub"]})
+    
+    return {"message": "Verification recorded"}
