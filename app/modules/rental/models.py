@@ -10,6 +10,7 @@ class Rental(Base):
     alamat = Column(String)
     kontak = Column(String)
     status_verifikasi = Column(String, default="MENUNGGU")
+    membership_id = Column(String(36), nullable=True)
     created_at = Column(DateTime, default=func.now())
     is_active = Column(Boolean, default=True)
 
