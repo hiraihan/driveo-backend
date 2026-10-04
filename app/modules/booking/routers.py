@@ -21,6 +21,7 @@ class BookingCreate(BaseModel):
     total_nilai: float
     dp: float
     sisa: float
+    promo_code: str = None
 
 @router.post("", status_code=201)
 async def create_booking(req: BookingCreate, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -44,6 +45,20 @@ async def create_booking(req: BookingCreate, current_user: dict = Depends(get_cu
         db.add(avail)
         curr_date += timedelta(days=1)
         
+    
+    # 2. Check Promo if supplied
+    discount = 0.0
+    if req.promo_code:
+        from app.modules.admin.models import Promo
+        pq = select(Promo).where(Promo.code == req.promo_code, Promo.is_active == True)
+        pr = await db.execute(pq)
+        promo = pr.scalars().first()
+        if promo and promo.valid_until >= date.today():
+            calc_discount = req.total_nilai * (promo.discount_percent / 100.0)
+            discount = min(calc_discount, promo.max_discount_amount)
+            req.total_nilai -= discount
+            req.sisa = req.total_nilai - req.dp
+
     booking = Booking(user_id=current_user["sub"], **req.dict())
     db.add(booking)
     await db.commit()

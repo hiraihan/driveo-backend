@@ -3,6 +3,7 @@ import asyncio
 from sqlalchemy.future import select
 from datetime import datetime, timedelta
 from app.modules.booking.models import Booking
+from app.modules.admin.models import MembershipPlan, Promo
 from app.modules.booking.state import process_cancellation
 
 async def cancel_expired_bookings():
@@ -36,6 +37,7 @@ from app.modules.booking.routers import router as booking_router
 from app.modules.payment.routers import router as payment_router
 from app.modules.verification.routers import router as verification_router
 from app.modules.review.routers import router as review_router
+from app.modules.admin.routers import router as admin_router
 app.include_router(user_router, prefix="/users", tags=["users"])
 app.include_router(rental_router, prefix="/rentals", tags=["rentals"])
 app.include_router(vehicle_router, prefix="/vehicles", tags=["vehicles"])
@@ -46,6 +48,7 @@ app.include_router(booking_router, prefix="/bookings", tags=["bookings"])
 app.include_router(payment_router, prefix="/payments", tags=["payments"])
 app.include_router(verification_router, prefix="/verifications", tags=["verifications"])
 app.include_router(review_router, prefix="/reviews", tags=["reviews"])
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 from app.core.database import engine, Base
 @app.on_event("startup")
