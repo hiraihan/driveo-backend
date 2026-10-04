@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .env
 .pytest_cache/
+
+# Project documents
+Development_Plan_Backend_DriveO.pdf
+SRS_DriveO_v1.0.pdf
+docs/
