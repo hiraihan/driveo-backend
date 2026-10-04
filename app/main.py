@@ -1,3 +1,5 @@
+import sys
+import os
 
 import asyncio
 from sqlalchemy.future import select
@@ -38,6 +40,7 @@ from app.modules.payment.routers import router as payment_router
 from app.modules.verification.routers import router as verification_router
 from app.modules.review.routers import router as review_router
 from app.modules.admin.routers import router as admin_router
+from app.modules.notification.routers import router as notification_router
 app.include_router(user_router, prefix="/users", tags=["users"])
 app.include_router(rental_router, prefix="/rentals", tags=["rentals"])
 app.include_router(vehicle_router, prefix="/vehicles", tags=["vehicles"])
@@ -49,6 +52,7 @@ app.include_router(payment_router, prefix="/payments", tags=["payments"])
 app.include_router(verification_router, prefix="/verifications", tags=["verifications"])
 app.include_router(review_router, prefix="/reviews", tags=["reviews"])
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
 
 from app.core.database import engine, Base
 @app.on_event("startup")
@@ -56,3 +60,8 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     asyncio.create_task(cancel_expired_bookings())
+    try:
+        from seed import seed_data
+        await seed_data()
+    except Exception as e:
+        print('Seed error:', e)

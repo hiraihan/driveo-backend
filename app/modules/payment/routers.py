@@ -34,3 +34,20 @@ async def payment_webhook(payload: WebhookPayload, db: AsyncSession = Depends(ge
             
     await db.commit()
     return {"message": "Webhook processed"}
+
+
+@router.post("/simulate")
+async def simulate_payment(booking_id: str, db: AsyncSession = Depends(get_db)):
+    # LOMBA STANDARD: Helper endpoint for Frontend to quickly mock a successful Midtrans Payment
+    b_result = await db.execute(select(Booking).where(Booking.id == booking_id))
+    booking = b_result.scalars().first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+        
+    payload = WebhookPayload(
+        booking_id=booking_id,
+        amount=booking.sisa,
+        status="BERHASIL",
+        external_id="mock_midtrans_999"
+    )
+    return await payment_webhook(payload, db)

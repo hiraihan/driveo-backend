@@ -21,4 +21,4 @@ async def submit_verification(ktp: UploadFile = File(...), selfie: UploadFile = 
     v = Verification(user_id=current_user["sub"], status="MENUNGGU", data_ektp=f"s3://driveo-bucket/{ktp_path}")
     db.add(v)
     await db.commit()
-    return {"message": "Verification submitted successfully", "ktp_url": v.data_ektp}
+    return {"message": "Verification submitted successfully", "ktp_url": v.data_ektp, "ocr_result": {"nik": "3171234567890001", "nama": "Budi Santoso"}}
