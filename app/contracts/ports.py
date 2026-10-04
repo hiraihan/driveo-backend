@@ -9,19 +9,24 @@ class RentalReadPort(Protocol):
         ...
 
 class PaymentReadPort(Protocol):
-    pass
+    def get_status(self, payment_id: str) -> str:
+        ...
 
 class EscrowReadPort(Protocol):
-    pass
+    def get_state(self, booking_id: str) -> str:
+        ...
 
 class VerificationReadPort(Protocol):
-    pass
+    def get_status(self, user_id: str) -> str:
+        ...
 
 class RefundPort(Protocol):
-    pass
+    def trigger_refund(self, booking_id: str, amount: float) -> str:
+        ...
 
 class NotificationPort(Protocol):
-    pass
+    def send(self, recipient: str, message: str) -> None:
+        ...
 
 class AuditPort(Protocol):
     def log_event(self, event_name: str, payload: Dict[str, Any]) -> None:
