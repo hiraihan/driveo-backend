@@ -1,9 +1,80 @@
-venv/
+# =========================
+# Python
+# =========================
 __pycache__/
-*.pyc
-.env
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.so
 
-# Project documents
-Development_Plan_Backend_DriveO.pdf
-SRS_DriveO_v1.0.pdf
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Temporary
+# =========================
+tmp/
+temp/
+.cache/
+
+# =========================
+# Project-specific
+# =========================
+
+# Local skills / agent files
+skills/
+docs/
+
+# Local AI/agent configuration
+.claude/
+.cursor/
+.copilot/
+
+# Local documentation/generated files
+*.local.*
