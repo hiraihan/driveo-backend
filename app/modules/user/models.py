@@ -15,3 +15,11 @@ class Role(Base):
     __tablename__ = "roles"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, unique=True)
+
+class UserConsent(Base):
+    __tablename__ = "user_consents"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), index=True)
+    document_type = Column(String)
+    version = Column(String)
+    timestamp = Column(DateTime, default=func.now())
