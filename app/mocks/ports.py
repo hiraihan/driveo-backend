@@ -23,3 +23,11 @@ class MockRefundPort:
 class MockNotificationPort:
     def send(self, recipient: str, message: str) -> None:
         print(f"NOTIFICATION to {recipient}: {message}")
+
+class MockBookingPort:
+    def get_booking(self, booking_id: str) -> Dict[str, Any]:
+        return {"id": booking_id, "status": "MENUNGGU_DP", "total_nilai": 1000000, "dp": 300000}
+
+class MockRentalReadPort:
+    def get_rental_status(self, rental_id: str) -> str:
+        return "LOLOS"
