@@ -108,10 +108,8 @@ async def handle_notification(db: AsyncSession, payload: MidtransNotification, r
                 booking.dp_paid_at = utcnow()
             elif booking.booking_state == BookingState.DIBATALKAN:
                 # Late payment -> Refund
-                if refund_service:
-                    await refund_service.trigger_refund(booking.id, payment.amount, "LATE_PAYMENT")
-                else:
-                    await escrow.refund(db, booking.id, payment.amount, f"LATE-{payment.order_id}")
+                from app.modules.refund.service import RefundService
+                await RefundService(db).trigger_refund(booking.id, payment.amount, "LATE_PAYMENT")
         elif payment.type == PaymentType.PELUNASAN:
             # We don't transition state here according to table, state transitions to BERJALAN on HANDOVER.
             # But we update escrow state

@@ -1,11 +1,13 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, func, Float
+from sqlalchemy import Column, String, DateTime, func, BigInteger
 from app.core.database import Base
+from app.core.ids import new_id
+from app.core.time import utcnow
 
 class Refund(Base):
     __tablename__ = "refunds"
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(String(36), primary_key=True, default=new_id)
     booking_id = Column(String(36), index=True)
-    amount = Column(Float)
+    amount = Column(BigInteger, nullable=False)
+    reason = Column(String, nullable=False)
     status = Column(String, default="DIPROSES")
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime(timezone=True), default=utcnow)
