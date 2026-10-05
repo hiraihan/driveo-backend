@@ -4,6 +4,12 @@ class UserRole(StrEnum):
     ADMIN = "Admin"
     RENTAL = "Rental"
     PENYEWA = "Penyewa"
+    # Role operasional DriveO (frontend)
+    STAFF_OPERASIONAL = "STAFF_OPERASIONAL"
+    STAFF_KEUANGAN = "STAFF_KEUANGAN"
+    TIM_VERIFIKASI = "TIM_VERIFIKASI"
+    CUSTOMER_SUPPORT = "CUSTOMER_SUPPORT"
+    TIM_MEDIASI = "TIM_MEDIASI"
 
 class BookingState(StrEnum):
     MENUNGGU_DP = "MENUNGGU_DP"

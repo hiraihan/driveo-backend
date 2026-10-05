@@ -12,5 +12,13 @@ from app.modules.availability.models import VehicleAvailability
 from app.modules.user.models import User, Role
 from app.modules.admin.models import Promo
 from app.modules.payment.models import Payment
+from app.modules.marketplace.models import (
+    PickupSpot,
+    MarketplaceRental,
+    MarketplaceVehicle,
+    MarketplaceListing,
+    Dispute,
+    InAppNotification,
+)
 
 from app.core.database import Base

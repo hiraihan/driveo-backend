@@ -5,11 +5,15 @@ from app.core.enums import UserRole
 class RegisterRequest(RequestModel):
     email: EmailStr
     password: str = Field(min_length=8)
+    name: str | None = None
+    phone: str | None = None
 
 class UserResponse(ResponseModel):
     id: str
     email: str
     role: str
+    name: str | None = None
+    phone: str | None = None
 
 class TokenResponse(ResponseModel):
     access_token: str

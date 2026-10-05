@@ -10,6 +10,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password_hash = Column(String)
     role_id = Column(String(36))
+    name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 

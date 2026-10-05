@@ -1,5 +1,6 @@
 import os
 os.environ["DRIVEO_JWT_SECRET"] = "t" * 40
+os.environ["DRIVEO_DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
 import pytest
 from httpx import AsyncClient, ASGITransport

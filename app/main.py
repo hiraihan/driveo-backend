@@ -21,6 +21,7 @@ from app.modules.verification.routers import router as verification_router
 from app.modules.review.routers import router as review_router
 from app.modules.admin.routers import router as admin_router
 from app.modules.notification.routers import router as notification_router
+from app.modules.marketplace.routers import router as marketplace_router
 
 settings = get_settings()
 
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     api_router.include_router(review_router, tags=["reviews"])
     api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
     api_router.include_router(notification_router, prefix="/notifications", tags=["notifications"])
+    api_router.include_router(marketplace_router, prefix="/marketplace", tags=["marketplace"])
     
     @api_router.get("/health")
     async def health():

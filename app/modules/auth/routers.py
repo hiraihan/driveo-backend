@@ -15,9 +15,14 @@ router = APIRouter()
 @router.post("/register", status_code=201, response_model=UserResponse)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = await create_user(db, req.email, hash_password(req.password), UserRole.PENYEWA)
+    if req.name:
+        user.name = req.name
+    if req.phone:
+        user.phone = req.phone
     await db.commit()
     await db.refresh(user)
-    return UserResponse(id=user.id, email=user.email, role=UserRole.PENYEWA.value)
+    return UserResponse(id=user.id, email=user.email, role=UserRole.PENYEWA.value,
+                        name=user.name, phone=user.phone)
 
 @router.post("/login", response_model=TokenResponse)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):

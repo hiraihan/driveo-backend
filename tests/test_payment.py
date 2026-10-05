@@ -7,12 +7,12 @@ import uuid
 import hashlib
 
 def test_signature():
-    # sha512(order_id + status_code + gross_amount + settings.midtrans_server_key).hexdigest()
-    # settings.midtrans_server_key is "dev-server-key"
+    from app.core.config import get_settings
+    server_key = get_settings().midtrans_server_key
     order = "123"
     code = "200"
     amount = "50000.00"
-    expected = hashlib.sha512(f"{order}{code}{amount}dev-server-key".encode()).hexdigest()
+    expected = hashlib.sha512(f"{order}{code}{amount}{server_key}".encode()).hexdigest()
     assert signature_for(order, code, amount) == expected
 
 async def test_create_intent_dp_when_menunggu_dp(db, client):
