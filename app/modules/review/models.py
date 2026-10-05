@@ -1,13 +1,19 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, func, Integer
+from sqlalchemy import Column, String, DateTime, Integer, UniqueConstraint
 from app.core.database import Base
+from app.core.time import utcnow
+from app.core.ids import new_id
 
 class Review(Base):
     __tablename__ = "reviews"
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    booking_id = Column(String(36), index=True)
-    user_id = Column(String(36), index=True)
-    rental_id = Column(String(36), index=True)
-    rating = Column(Integer)
-    komentar = Column(String)
-    created_at = Column(DateTime, default=func.now())
+    id = Column(String(36), primary_key=True, default=new_id)
+    booking_id = Column(String(36), index=True, nullable=False)
+    author_id = Column(String(36), index=True, nullable=False)
+    author_role = Column(String, nullable=False)
+    target_id = Column(String(36), index=True, nullable=False)
+    rating = Column(Integer, nullable=False)
+    komentar = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    
+    __table_args__ = (
+        UniqueConstraint("booking_id", "author_role", name="uq_review_booking_role"),
+    )
