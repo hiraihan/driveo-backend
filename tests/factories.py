@@ -49,3 +49,23 @@ async def make_rental(db, owner: User, status: RentalStatus = RentalStatus.LOLOS
     await db.commit()
     
     return r
+
+from app.modules.vehicle.models import Vehicle
+from app.core.enums import VehicleStatus
+
+async def make_vehicle(db, rental, **kw) -> Vehicle:
+    from app.core.ids import new_id
+    v = Vehicle(
+        id=new_id(),
+        rental_id=rental.id,
+        jenis=kw.get("jenis", "Mobil"),
+        merk=kw.get("merk", "Toyota"),
+        tipe=kw.get("tipe", "Avanza"),
+        plat_nomor=kw.get("plat_nomor", f"B {new_id()[:8].upper()} {new_id()[-4:].upper()}"),
+        tarif_dasar=kw.get("tarif_dasar", 300000),
+        status=kw.get("status", VehicleStatus.AKTIF.value)
+    )
+    db.add(v)
+    await db.commit()
+    await db.refresh(v)
+    return v

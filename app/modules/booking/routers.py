@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import and_, or_
 from app.core.database import get_db
 from app.modules.booking.models import Booking
-from app.modules.vehicle.models import VehicleAvailability
+from app.modules.availability.models import VehicleAvailability
 from app.modules.booking.state import process_cancellation
 from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
