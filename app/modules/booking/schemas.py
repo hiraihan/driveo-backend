@@ -1,8 +1,27 @@
 from datetime import date, datetime
 from typing import Literal
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from app.core.schemas import RequestModel, ResponseModel
 from app.core.enums import BookingState, EscrowState
+
+class ChecklistRequest(RequestModel):
+    odometer: int = Field(ge=0)
+    bbm_persen: int = Field(ge=0, le=100)
+    catatan: str | None = None
+    foto_urls: list[str] = Field(default_factory=list)
+
+class ChecklistResponse(ResponseModel):
+    id: str
+    booking_id: str
+    tipe: str
+    odometer: int
+    bbm_persen: int
+    catatan: str | None
+    foto_urls: list[str]
+    created_by: str
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class BookingCreate(RequestModel):
     listing_id: str

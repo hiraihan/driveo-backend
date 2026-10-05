@@ -4,6 +4,7 @@ from app.modules.rental.models import Rental, RentalStaff
 from app.modules.verification.models import Verification
 from app.modules.notification.models import Notification
 from app.modules.booking.models import Booking
+from app.modules.booking.checklist_models import HandoverChecklist
 from app.modules.listing.models import Listing
 from app.modules.review.models import Review
 from app.modules.vehicle.models import Vehicle

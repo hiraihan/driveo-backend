@@ -209,3 +209,66 @@ async def breach_unconfirmed_bookings(db: AsyncSession, now: datetime) -> int:
         await AuditService(db).log_event("BOOKING_SLA_BREACH", {"booking_id": booking.id})
         count += 1
     return count
+
+from sqlalchemy.exc import IntegrityError
+from app.modules.booking.checklist_models import HandoverChecklist
+from app.modules.booking.schemas import ChecklistRequest
+from app.modules.notification.service import NotificationService
+
+async def handover_booking(db: AsyncSession, booking: Booking, actor_id: str, checklist: ChecklistRequest) -> Booking:
+    if booking.escrow_state != EscrowState.LUNAS:
+        raise Conflict("ESCROW_NOT_LUNAS", "Booking belum lunas")
+        
+    booking.booking_state = transition(booking, BookingEvent.HANDOVER)
+    
+    cl = HandoverChecklist(
+        booking_id=booking.id,
+        tipe="HANDOVER",
+        odometer=checklist.odometer,
+        bbm_persen=checklist.bbm_persen,
+        catatan=checklist.catatan,
+        foto_urls=checklist.foto_urls,
+        created_by=actor_id
+    )
+    db.add(cl)
+    try:
+        await db.flush()
+    except IntegrityError:
+        raise Conflict("HANDOVER_EXISTS", "Handover checklist sudah ada")
+        
+    return booking
+
+async def return_booking(db: AsyncSession, booking: Booking, actor_id: str, checklist: ChecklistRequest) -> Booking:
+    booking.booking_state = transition(booking, BookingEvent.RETURN)
+    
+    cl = HandoverChecklist(
+        booking_id=booking.id,
+        tipe="RETURN",
+        odometer=checklist.odometer,
+        bbm_persen=checklist.bbm_persen,
+        catatan=checklist.catatan,
+        foto_urls=checklist.foto_urls,
+        created_by=actor_id
+    )
+    db.add(cl)
+    try:
+        await db.flush()
+    except IntegrityError:
+        raise Conflict("RETURN_EXISTS", "Return checklist sudah ada")
+        
+    # release escrow
+    await escrow.release(db, booking.id, "TRIP_COMPLETED")
+    booking.escrow_state = EscrowState.DICAIRKAN
+    
+    # audit
+    await AuditService(db).log_event("BOOKING_COMPLETED", {"booking_id": booking.id})
+    await AuditService(db).log_event("ESCROW_RELEASED", {"booking_id": booking.id})
+    
+    # notify penyewa
+    await NotificationService(db).send(
+        recipient=booking.user_id,
+        subject="Rental Selesai",
+        message="Perjalanan Anda telah selesai. Silakan tinggalkan ulasan untuk pengalaman ini."
+    )
+    
+    return booking

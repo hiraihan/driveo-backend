@@ -4,13 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.database import get_db
 from app.modules.booking.models import Booking
-from app.modules.booking.schemas import BookingCreate, BookingResponse
+from app.modules.booking.schemas import BookingCreate, BookingResponse, ChecklistRequest
 from app.modules.booking.service import (
     create_booking, 
     get_booking_for_actor, 
     cancel_booking as svc_cancel_booking,
     confirm_booking,
-    reject_booking
+    reject_booking,
+    handover_booking,
+    return_booking
 )
 from app.modules.auth.dependencies import get_current_user, CurrentUser
 from app.core.pagination import PageParams, paginate, Page
@@ -108,6 +110,34 @@ async def reject_booking_endpoint(booking_id: str, req: RejectRequest, current_u
         raise Forbidden("Akses ditolak")
 
     booking = await reject_booking(db, booking, current_user.id, req.alasan)
+    await db.commit()
+    await db.refresh(booking)
+    return booking
+
+@router.post("/{booking_id}/handover", response_model=BookingResponse)
+async def handover_booking_endpoint(booking_id: str, req: ChecklistRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    booking = await get_booking_for_actor(db, booking_id, current_user)
+    
+    # Must be a staff member of the rental
+    staff_rental_id = await get_rental_id_for_staff(db, current_user.id)
+    if not staff_rental_id or booking.rental_id != staff_rental_id:
+        raise Forbidden("Akses ditolak")
+
+    booking = await handover_booking(db, booking, current_user.id, req)
+    await db.commit()
+    await db.refresh(booking)
+    return booking
+
+@router.post("/{booking_id}/return", response_model=BookingResponse)
+async def return_booking_endpoint(booking_id: str, req: ChecklistRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    booking = await get_booking_for_actor(db, booking_id, current_user)
+    
+    # Must be a staff member of the rental
+    staff_rental_id = await get_rental_id_for_staff(db, current_user.id)
+    if not staff_rental_id or booking.rental_id != staff_rental_id:
+        raise Forbidden("Akses ditolak")
+
+    booking = await return_booking(db, booking, current_user.id, req)
     await db.commit()
     await db.refresh(booking)
     return booking
