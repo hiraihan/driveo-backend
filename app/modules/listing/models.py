@@ -1,13 +1,19 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, func, Boolean, Float, Integer
+from sqlalchemy import Column, String, DateTime, BigInteger, Boolean
 from app.core.database import Base
+from app.core.ids import new_id
+from app.core.time import utcnow
+from app.core.enums import ListingStatus
 
 class Listing(Base):
     __tablename__ = "listings"
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(String(36), primary_key=True, default=new_id)
     vehicle_id = Column(String(36), index=True)
+    rental_id = Column(String(36), index=True)
     judul = Column(String)
     deskripsi = Column(String, nullable=True)
-    harga_all_in = Column(Float)
-    skor_kebasuan = Column(Integer, default=0)
-    status_publikasi = Column(String, default="PUBLISHED")
+    biaya_tambahan = Column(BigInteger, default=0)
+    harga_all_in = Column(BigInteger, default=0)
+    status_publikasi = Column(String, default=ListingStatus.DRAFT.value)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)

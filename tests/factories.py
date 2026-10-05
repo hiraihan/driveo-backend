@@ -69,3 +69,23 @@ async def make_vehicle(db, rental, **kw) -> Vehicle:
     await db.commit()
     await db.refresh(v)
     return v
+
+from app.modules.listing.models import Listing
+from app.core.enums import ListingStatus
+
+async def make_listing(db, vehicle, status: ListingStatus = ListingStatus.PUBLISHED, biaya_tambahan: int = 0) -> Listing:
+    from app.core.ids import new_id
+    l = Listing(
+        id=new_id(),
+        vehicle_id=vehicle.id,
+        rental_id=vehicle.rental_id,
+        judul=f"Sewa {vehicle.merk} {vehicle.tipe}",
+        deskripsi="Mobil bagus",
+        biaya_tambahan=biaya_tambahan,
+        harga_all_in=vehicle.tarif_dasar + biaya_tambahan,
+        status_publikasi=status.value
+    )
+    db.add(l)
+    await db.commit()
+    await db.refresh(l)
+    return l
