@@ -19,3 +19,33 @@ async def make_admin(db, email: str | None = None) -> User:
 def auth_header(user: User, role: UserRole | None = None) -> dict:
     token = create_access_token(user.id, role or UserRole.PENYEWA)
     return {"Authorization": f"Bearer {token}"}
+
+from app.modules.rental.models import Rental, RentalStaff
+from app.core.enums import RentalStatus
+
+async def make_rental(db, owner: User, status: RentalStatus = RentalStatus.LOLOS) -> Rental:
+    from app.core.ids import new_id
+    r = Rental(
+        id=new_id(),
+        nama_usaha=f"Rental {new_id()[:5]}",
+        nib="1234567890",
+        alamat="Jl. Test",
+        kontak="0812345678",
+        status_verifikasi=status,
+        payout_account="ENCRYPTED_123"
+    )
+    db.add(r)
+    await db.commit()
+    await db.refresh(r)
+    
+    staff = RentalStaff(id=new_id(), rental_id=r.id, user_id=owner.id, is_owner=True)
+    db.add(staff)
+    await db.commit()
+    
+    # Also update user role to RENTAL
+    r_role = await get_or_create_role(db, UserRole.RENTAL)
+    owner.role_id = r_role.id
+    db.add(owner)
+    await db.commit()
+    
+    return r
