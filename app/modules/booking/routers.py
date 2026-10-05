@@ -1,95 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_, or_
 from app.core.database import get_db
 from app.modules.booking.models import Booking
-from app.modules.availability.models import VehicleAvailability
+from app.modules.booking.schemas import BookingCreate, BookingResponse
+from app.modules.booking.service import create_booking, get_booking
 from app.modules.booking.state import transition
 from app.core.enums import BookingEvent
 from app.modules.auth.dependencies import get_current_user, CurrentUser
-from pydantic import BaseModel
-from datetime import date, timedelta
-from typing import List
+from app.modules.availability.service import release_slots
 
 router = APIRouter()
 
-class BookingCreate(BaseModel):
-    rental_id: str
-    vehicle_id: str
-    tanggal_mulai: date
-    tanggal_selesai: date
-    total_nilai: float
-    dp: float
-    sisa: float
-    promo_code: str = None
-
-@router.post("", status_code=201)
-async def create_booking(req: BookingCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # 1. Pengecekan Ketersediaan Kalender (Atomic Slot Lock)
-    query = select(VehicleAvailability).where(
-        VehicleAvailability.vehicle_id == req.vehicle_id,
-        VehicleAvailability.tanggal >= req.tanggal_mulai,
-        VehicleAvailability.tanggal <= req.tanggal_selesai,
-        VehicleAvailability.status != "tersedia"
-    )
-    result = await db.execute(query)
-    conflicts = result.scalars().all()
-    
-    if conflicts:
-        raise HTTPException(status_code=400, detail="Kendaraan tidak tersedia pada tanggal tersebut.")
-        
-    # Lock slot
-    curr_date = req.tanggal_mulai
-    while curr_date <= req.tanggal_selesai:
-        avail = VehicleAvailability(vehicle_id=req.vehicle_id, tanggal=curr_date, status="dipesan")
-        db.add(avail)
-        curr_date += timedelta(days=1)
-        
-    
-    # 2. Check Promo if supplied
-    discount = 0.0
-    if req.promo_code:
-        from app.modules.admin.models import Promo
-        pq = select(Promo).where(Promo.code == req.promo_code, Promo.is_active == True)
-        pr = await db.execute(pq)
-        promo = pr.scalars().first()
-        if promo and promo.valid_until >= date.today():
-            calc_discount = req.total_nilai * (promo.discount_percent / 100.0)
-            discount = min(calc_discount, promo.max_discount_amount)
-            req.total_nilai -= discount
-            req.sisa = req.total_nilai - req.dp
-
-    booking = Booking(user_id=current_user.id, **req.dict())
-    db.add(booking)
+@router.post("", status_code=201, response_model=BookingResponse)
+async def create_booking_api(req: BookingCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    booking = await create_booking(db, current_user, req)
     await db.commit()
     await db.refresh(booking)
     return booking
 
-@router.get("")
+@router.get("", response_model=list[BookingResponse])
 async def get_my_bookings(current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Booking).where(Booking.user_id == current_user.id))
     return result.scalars().all()
 
+from pydantic import BaseModel
+
+class CancelRequest(BaseModel):
+    alasan: str
+
 @router.post("/{booking_id}/cancel")
-async def cancel_booking(booking_id: str, alasan: str, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Booking).where(Booking.id == booking_id))
-    booking = result.scalars().first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-        
+async def cancel_booking(booking_id: str, req: CancelRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    booking = await get_booking(db, booking_id)
     transition(booking, BookingEvent.CANCEL)
-    booking.alasan_batal = alasan
+    booking.alasan_batal = req.alasan
+    booking.dibatalkan_oleh = current_user.id
     
-    # Release calendar
-    q_avail = select(VehicleAvailability).where(
-        VehicleAvailability.vehicle_id == booking.vehicle_id,
-        VehicleAvailability.tanggal >= booking.tanggal_mulai,
-        VehicleAvailability.tanggal <= booking.tanggal_selesai
-    )
-    avails = await db.execute(q_avail)
-    for a in avails.scalars().all():
-        a.status = "tersedia"
-        
+    await release_slots(db, booking.id)
     await db.commit()
     return {"message": "Booking cancelled", "state": booking.booking_state}

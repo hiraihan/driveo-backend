@@ -105,3 +105,32 @@ async def make_verified_user(db):
     db.add(v)
     await db.commit()
     return u
+
+async def make_booking(db, penyewa, listing, state="MENUNGGU_DP", **kw):
+    from app.modules.booking.models import Booking
+    from app.core.ids import new_id
+    from app.core.time import today_wib
+    from datetime import timedelta
+    
+    b = Booking(
+        id=new_id(),
+        user_id=penyewa.id,
+        rental_id=listing.rental_id,
+        vehicle_id=listing.vehicle_id,
+        listing_id=listing.id,
+        tanggal_mulai=today_wib(),
+        tanggal_selesai=today_wib() + timedelta(days=2),
+        hari=3,
+        harga_per_hari=listing.harga_all_in,
+        subtotal=listing.harga_all_in * 3,
+        diskon=0,
+        total_nilai=listing.harga_all_in * 3,
+        dp=int(listing.harga_all_in * 3 * 0.3),
+        sisa=int(listing.harga_all_in * 3 * 0.7),
+        booking_state=state,
+        **kw
+    )
+    db.add(b)
+    await db.commit()
+    await db.refresh(b)
+    return b

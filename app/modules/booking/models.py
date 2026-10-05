@@ -1,18 +1,35 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, func, Boolean, Float, Date
+from sqlalchemy import Column, String, DateTime, Date, BigInteger, Integer
 from app.core.database import Base
+from app.core.time import utcnow
+from app.core.ids import new_id
+from app.core.enums import BookingState, EscrowState
 
 class Booking(Base):
     __tablename__ = "bookings"
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(String(36), primary_key=True, default=new_id)
     user_id = Column(String(36), index=True)
     rental_id = Column(String(36), index=True)
     vehicle_id = Column(String(36), index=True)
+    listing_id = Column(String(36), index=True)
     tanggal_mulai = Column(Date)
     tanggal_selesai = Column(Date)
-    booking_state = Column(String, default="MENUNGGU_DP")
-    escrow_state = Column(String, default="NONE")
-    total_nilai = Column(Float)
-    dp = Column(Float)
-    sisa = Column(Float)
-    created_at = Column(DateTime, default=func.now())
+    
+    hari = Column(Integer)
+    harga_per_hari = Column(BigInteger)
+    subtotal = Column(BigInteger)
+    diskon = Column(BigInteger)
+    promo_id = Column(String(36), nullable=True)
+    total_nilai = Column(BigInteger)
+    dp = Column(BigInteger)
+    sisa = Column(BigInteger)
+    
+    booking_state = Column(String, default=BookingState.MENUNGGU_DP.value)
+    escrow_state = Column(String, default=EscrowState.NONE.value)
+    
+    alasan_batal = Column(String, nullable=True)
+    dibatalkan_oleh = Column(String(36), nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    dp_paid_at = Column(DateTime(timezone=True), nullable=True)
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
