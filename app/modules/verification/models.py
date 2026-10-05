@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, ForeignKey
 from app.core.database import Base
 from app.core.time import utcnow
 from app.core.ids import new_id
@@ -7,7 +7,7 @@ from app.core.enums import VerificationStatus
 class Verification(Base):
     __tablename__ = "verifications"
     id = Column(String(36), primary_key=True, default=new_id)
-    user_id = Column(String(36), index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     status = Column(String, default=VerificationStatus.MENUNGGU.value)
     ktp_path = Column(String)
     selfie_path = Column(String)

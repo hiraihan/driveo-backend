@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, func, BigInteger, Enum
+from sqlalchemy import Column, String, DateTime, func, BigInteger, Enum, ForeignKey
 from app.core.database import Base
 from app.core.enums import PaymentType, PaymentStatus, LedgerEntryType
 from app.core.ids import new_id
@@ -8,7 +8,7 @@ from app.core.time import utcnow
 class Payment(Base):
     __tablename__ = "payments"
     id = Column(String(36), primary_key=True, default=new_id)
-    booking_id = Column(String(36), index=True)
+    booking_id = Column(String(36), ForeignKey("bookings.id", ondelete="RESTRICT"), index=True)
     type = Column(Enum(PaymentType, native_enum=False), nullable=False)
     order_id = Column(String, unique=True, nullable=False)
     amount = Column(BigInteger, nullable=False)
@@ -20,7 +20,7 @@ class Payment(Base):
 class EscrowLedger(Base):
     __tablename__ = "escrow_ledgers"
     id = Column(String(36), primary_key=True, default=new_id)
-    booking_id = Column(String(36), index=True)
+    booking_id = Column(String(36), ForeignKey("bookings.id", ondelete="RESTRICT"), index=True)
     entry_type = Column(Enum(LedgerEntryType, native_enum=False), nullable=False)
     amount = Column(BigInteger, nullable=False)
     reference = Column(String, nullable=False)
