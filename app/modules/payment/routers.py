@@ -4,7 +4,8 @@ from sqlalchemy.future import select
 from app.core.database import get_db
 from app.modules.payment.models import Payment, EscrowLedger
 from app.modules.booking.models import Booking
-from app.modules.booking.state import process_payment_success
+from app.modules.booking.state import transition
+from app.core.enums import BookingEvent
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -26,7 +27,8 @@ async def payment_webhook(payload: WebhookPayload, db: AsyncSession = Depends(ge
         b_result = await db.execute(select(Booking).where(Booking.id == payload.booking_id))
         booking = b_result.scalars().first()
         if booking:
-            process_payment_success(booking)
+            transition(booking, BookingEvent.DP_PAID)
+            booking.escrow_state = "DITAHAN_ESCROW"
             
             # Put into Escrow
             escrow = EscrowLedger(booking_id=booking.id, amount=payload.amount, status="DITAHAN")

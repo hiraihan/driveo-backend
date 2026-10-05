@@ -5,7 +5,8 @@ from sqlalchemy import and_, or_
 from app.core.database import get_db
 from app.modules.booking.models import Booking
 from app.modules.availability.models import VehicleAvailability
-from app.modules.booking.state import process_cancellation
+from app.modules.booking.state import transition
+from app.core.enums import BookingEvent
 from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 from datetime import date, timedelta
@@ -77,7 +78,8 @@ async def cancel_booking(booking_id: str, alasan: str, current_user: CurrentUser
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
         
-    process_cancellation(booking, alasan)
+    transition(booking, BookingEvent.CANCEL)
+    booking.alasan_batal = alasan
     
     # Release calendar
     q_avail = select(VehicleAvailability).where(
