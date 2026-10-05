@@ -9,7 +9,7 @@ from app.modules.availability.service import lock_slots
 from app.modules.verification.service import VerificationService
 from app.core.enums import VerificationStatus, BookingState, EscrowState
 from app.core.errors import NotFound, ValidationFailed, AppError, Conflict, Forbidden
-from app.core.time import today_wib
+from app.core.time import today_wib, utcnow
 from app.core.config import get_settings
 from app.modules.auth.dependencies import CurrentUser
 from app.modules.audit.service import AuditService
@@ -138,3 +138,74 @@ async def cancel_booking(db: AsyncSession, booking: Booking, actor_id: str | Non
         await NotificationService(db).send(penyewa.email, f"Booking {booking.id} dibatalkan.", subject="Booking Dibatalkan")
         
     return booking
+
+from datetime import datetime
+
+async def confirm_booking(db: AsyncSession, booking: Booking, actor_id: str) -> Booking:
+    booking.booking_state = transition(booking, BookingEvent.CONFIRM)
+    booking.confirmed_at = utcnow()
+    
+    await AuditService(db).log_event("BOOKING_CONFIRMED", {"booking_id": booking.id}, actor_id=actor_id)
+    
+    penyewa = await get_user(db, booking.user_id)
+    if penyewa:
+        await NotificationService(db).send(penyewa.email, f"Booking {booking.id} dikonfirmasi oleh rental.", subject="Booking Dikonfirmasi")
+    return booking
+
+async def reject_booking(db: AsyncSession, booking: Booking, actor_id: str, alasan: str) -> Booking:
+    booking.booking_state = transition(booking, BookingEvent.REJECT)
+    booking.alasan_batal = alasan
+    
+    await release_slots(db, booking.id)
+    
+    current_balance = await escrow.balance(db, booking.id)
+    if current_balance > 0:
+        await RefundService(db).trigger_refund(booking.id, current_balance, "REJECTED_BY_RENTAL")
+        booking.escrow_state = EscrowState.DIKEMBALIKAN
+    
+    await AuditService(db).log_event("BOOKING_REJECTED", {"booking_id": booking.id, "alasan": alasan}, actor_id=actor_id)
+    
+    penyewa = await get_user(db, booking.user_id)
+    if penyewa:
+        await NotificationService(db).send(penyewa.email, f"Booking {booking.id} ditolak: {alasan}", subject="Booking Ditolak")
+    return booking
+
+async def expire_unpaid_bookings(db: AsyncSession, now: datetime) -> int:
+    settings = get_settings()
+    from datetime import timedelta
+    limit = now - timedelta(minutes=settings.dp_expiry_minutes)
+    
+    stmt = select(Booking).where(Booking.booking_state == BookingState.MENUNGGU_DP).where(Booking.created_at < limit)
+    result = await db.execute(stmt)
+    bookings = result.scalars().all()
+    
+    count = 0
+    for booking in bookings:
+        booking.booking_state = transition(booking, BookingEvent.EXPIRE)
+        await release_slots(db, booking.id)
+        await AuditService(db).log_event("BOOKING_EXPIRED", {"booking_id": booking.id})
+        count += 1
+    return count
+
+async def breach_unconfirmed_bookings(db: AsyncSession, now: datetime) -> int:
+    settings = get_settings()
+    from datetime import timedelta
+    limit = now - timedelta(minutes=settings.rental_confirm_sla_minutes)
+    
+    stmt = select(Booking).where(Booking.booking_state == BookingState.MENUNGGU_KONFIRMASI_RENTAL).where(Booking.dp_paid_at < limit)
+    result = await db.execute(stmt)
+    bookings = result.scalars().all()
+    
+    count = 0
+    for booking in bookings:
+        booking.booking_state = transition(booking, BookingEvent.SLA_BREACH)
+        await release_slots(db, booking.id)
+        
+        current_balance = await escrow.balance(db, booking.id)
+        if current_balance > 0:
+            await RefundService(db).trigger_refund(booking.id, current_balance, "SLA_BREACH")
+            booking.escrow_state = EscrowState.DIKEMBALIKAN
+            
+        await AuditService(db).log_event("BOOKING_SLA_BREACH", {"booking_id": booking.id})
+        count += 1
+    return count

@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
-from app.core.database import engine
+from app.core.database import engine, async_session
 from app.models import Base
 from app.core.errors import register_error_handlers
+from app.jobs import job_loop
 
 from app.modules.auth.routers import router as auth_router
 from app.modules.user.routers import router as user_router
@@ -34,7 +36,16 @@ async def lifespan(app: FastAPI):
                 await seed_data(session)
         except Exception as e:
             print('Seed error:', e)
+            
+    job_task = asyncio.create_task(job_loop(async_session, sleep_time=60))
+    
     yield
+    
+    job_task.cancel()
+    try:
+        await job_task
+    except asyncio.CancelledError:
+        pass
 
 def create_app() -> FastAPI:
     app = FastAPI(title="DriveO Backend", lifespan=lifespan)
