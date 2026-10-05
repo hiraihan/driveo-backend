@@ -39,3 +39,24 @@ async def cancel_booking(booking_id: str, req: CancelRequest, current_user: Curr
     await release_slots(db, booking.id)
     await db.commit()
     return {"message": "Booking cancelled", "state": booking.booking_state}
+
+from app.modules.payment.schemas import PaymentIntentRequest, PaymentIntentResponse
+from app.modules.payment.service import create_payment_intent
+from app.core.errors import Forbidden
+
+@router.post("/{booking_id}/payments", status_code=201, response_model=PaymentIntentResponse)
+async def create_payment(booking_id: str, req: PaymentIntentRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    booking = await get_booking(db, booking_id)
+    if booking.user_id != current_user.id:
+        raise Forbidden("Akses ditolak")
+    
+    payment = await create_payment_intent(db, booking, req.type)
+    await db.commit()
+    await db.refresh(payment)
+    return PaymentIntentResponse(
+        order_id=payment.order_id,
+        amount=payment.amount,
+        type=payment.type,
+        status=payment.status,
+        redirect_url=f"https://app.sandbox.midtrans.com/snap/v2/vtweb/{payment.order_id}"
+    )
