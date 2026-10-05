@@ -89,3 +89,19 @@ async def make_listing(db, vehicle, status: ListingStatus = ListingStatus.PUBLIS
     await db.commit()
     await db.refresh(l)
     return l
+
+async def make_verified_user(db):
+    from app.modules.verification.models import Verification
+    from app.core.enums import VerificationStatus
+    u = await make_user(db)
+    v = Verification(
+        id=new_id(),
+        user_id=u.id,
+        status=VerificationStatus.TERVERIFIKASI.value,
+        ktp_path="test/ktp.png",
+        selfie_path="test/selfie.png",
+        reviewer_id="admin1"
+    )
+    db.add(v)
+    await db.commit()
+    return u
