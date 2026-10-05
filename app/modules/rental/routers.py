@@ -94,3 +94,14 @@ async def get_my_rental_bookings(
     if state:
         stmt = stmt.where(Booking.booking_state == state)
     return await paginate(db, stmt, params, BookingResponse)
+
+from app.modules.rental.schemas import DashboardResponse
+from app.modules.rental.service import get_rental_dashboard
+
+@router.get("/me/dashboard", response_model=DashboardResponse)
+async def get_my_rental_dashboard(
+    current_user: CurrentUser = Depends(require_roles(UserRole.RENTAL)),
+    db: AsyncSession = Depends(get_db)
+):
+    rental_id = await get_rental_id_for_staff(db, current_user.id)
+    return await get_rental_dashboard(db, rental_id)

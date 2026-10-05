@@ -272,3 +272,35 @@ async def return_booking(db: AsyncSession, booking: Booking, actor_id: str, chec
     )
     
     return booking
+
+async def bookings_summary_for_rental(db: AsyncSession, rental_id: str, today_date: date) -> tuple[dict[str, int], list[str], list[Booking]]:
+    from sqlalchemy.future import select
+    from sqlalchemy import func
+    from app.core.enums import BookingState
+    from datetime import timedelta
+    
+    # All booking IDs for this rental
+    stmt = select(Booking.id, Booking.booking_state).where(Booking.rental_id == rental_id)
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    booking_ids = []
+    counts_by_state = {}
+    
+    for row in rows:
+        booking_ids.append(row.id)
+        counts_by_state[row.booking_state] = counts_by_state.get(row.booking_state, 0) + 1
+        
+    # Upcoming handovers
+    seven_days_later = today_date + timedelta(days=7)
+    stmt_upcoming = select(Booking).where(
+        Booking.rental_id == rental_id,
+        Booking.booking_state == BookingState.TERKONFIRMASI.value,
+        Booking.tanggal_mulai >= today_date,
+        Booking.tanggal_mulai <= seven_days_later
+    ).order_by(Booking.tanggal_mulai.asc())
+    
+    res_upcoming = await db.execute(stmt_upcoming)
+    upcoming_handovers = list(res_upcoming.scalars().all())
+    
+    return counts_by_state, booking_ids, upcoming_handovers
