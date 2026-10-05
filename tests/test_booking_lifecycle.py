@@ -6,15 +6,6 @@ import uuid
 from datetime import date
 from app.modules.booking.models import Booking
 
-@pytest_asyncio.fixture(autouse=True)
-async def prepare_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-@pytest.mark.asyncio(loop_scope="function")
 async def test_booking_cancel():
     from app.core.database import async_session
     from app.modules.booking.state import process_cancellation

@@ -8,15 +8,6 @@ from sqlalchemy.future import select
 from datetime import date
 import uuid
 
-@pytest_asyncio.fixture(autouse=True)
-async def prepare_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-@pytest.mark.asyncio(loop_scope="function")
 async def test_vehicle_models_and_availability():
     from app.core.database import async_session
     
@@ -35,7 +26,6 @@ async def test_vehicle_models_and_availability():
         a = result.scalars().first()
         assert a.status == "tersedia"
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_listing_model():
     from app.core.database import async_session
     from app.modules.listing.models import Listing

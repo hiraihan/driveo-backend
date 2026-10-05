@@ -5,15 +5,6 @@ import pytest_asyncio
 from app.core.database import Base, engine
 from sqlalchemy.future import select
 
-@pytest_asyncio.fixture(autouse=True)
-async def prepare_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-@pytest.mark.asyncio(loop_scope="function")
 async def test_verification_and_audit():
     from app.core.database import async_session
     from app.modules.verification.models import Verification

@@ -6,20 +6,11 @@ from app.core.database import Base, engine
 import jwt
 from datetime import datetime, timedelta
 
-@pytest_asyncio.fixture(autouse=True)
-async def prepare_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
 def create_mock_token(user_id: str, role: str):
     expire = datetime.utcnow() + timedelta(minutes=30)
     to_encode = {"sub": user_id, "role": role, "exp": expire}
     return jwt.encode(to_encode, "test_secret_key", algorithm="HS256")
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_rental_verification():
     from app.modules.rental.models import Rental
     from app.core.database import async_session

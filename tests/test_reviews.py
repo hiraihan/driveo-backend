@@ -5,15 +5,6 @@ from sqlalchemy.future import select
 import uuid
 from app.modules.review.models import Review
 
-@pytest_asyncio.fixture(autouse=True)
-async def prepare_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-@pytest.mark.asyncio(loop_scope="function")
 async def test_review_model():
     from app.core.database import async_session
     

@@ -69,7 +69,6 @@ temp/
 
 # Local skills / agent files
 skills/
-docs/
 
 # Local AI/agent configuration
 .claude/
