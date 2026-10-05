@@ -77,10 +77,9 @@ async def verify_rental(
     return rental
 
 from typing import Optional
-from app.core.pagination import PageParams, paginate, Page
-from app.modules.booking.models import Booking
+from app.core.pagination import PageParams, Page
 from app.modules.booking.schemas import BookingResponse
-from sqlalchemy.future import select
+from app.modules.booking.service import paginate_rental_bookings
 
 @router.get("/me/bookings", response_model=Page[BookingResponse])
 async def get_my_rental_bookings(
@@ -90,10 +89,7 @@ async def get_my_rental_bookings(
     db: AsyncSession = Depends(get_db)
 ):
     rental_id = await get_rental_id_for_staff(db, current_user.id)
-    stmt = select(Booking).where(Booking.rental_id == rental_id)
-    if state:
-        stmt = stmt.where(Booking.booking_state == state)
-    return await paginate(db, stmt, params, BookingResponse)
+    return await paginate_rental_bookings(db, params, rental_id, state)
 
 from app.modules.rental.schemas import DashboardResponse
 from app.modules.rental.service import get_rental_dashboard

@@ -50,8 +50,6 @@ async def create_booking(db: AsyncSession, user: CurrentUser, req: BookingCreate
     from app.core.ids import new_id
     booking_id = new_id()
     
-    await lock_slots(db, listing.vehicle_id, req.tanggal_mulai, req.tanggal_selesai, booking_id)
-    
     booking = Booking(
         id=booking_id,
         user_id=user.id,
@@ -73,6 +71,8 @@ async def create_booking(db: AsyncSession, user: CurrentUser, req: BookingCreate
     )
     
     db.add(booking)
+    # the flush in lock_slots will also insert the booking, satisfying FK
+    await lock_slots(db, listing.vehicle_id, req.tanggal_mulai, req.tanggal_selesai, booking_id)
     
     await AuditService(db).log_event("BOOKING_CREATED", {"booking_id": booking.id}, actor_id=user.id)
     
@@ -304,3 +304,12 @@ async def bookings_summary_for_rental(db: AsyncSession, rental_id: str, today_da
     upcoming_handovers = list(res_upcoming.scalars().all())
     
     return counts_by_state, booking_ids, upcoming_handovers
+
+from app.core.pagination import PageParams, paginate, Page
+from app.modules.booking.schemas import BookingResponse
+
+async def paginate_rental_bookings(db: AsyncSession, params: PageParams, rental_id: str, state: str | None) -> Page[BookingResponse]:
+    stmt = select(Booking).where(Booking.rental_id == rental_id)
+    if state:
+        stmt = stmt.where(Booking.booking_state == state)
+    return await paginate(db, stmt, params, BookingResponse)

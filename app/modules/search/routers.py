@@ -3,9 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, desc, asc
 from app.core.database import get_db
-from app.modules.listing.models import Listing
-from app.modules.vehicle.models import Vehicle
-from app.modules.rental.models import Rental
+from app.models import Listing, Vehicle, Rental
 from app.modules.search.schemas import SearchParams
 from app.modules.availability.service import blocked_vehicle_ids
 from app.modules.vehicle.service import vehicle_ids_by_jenis

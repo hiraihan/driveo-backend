@@ -2,13 +2,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from typing import Any
 from app.modules.review.models import Review
 from app.modules.review.schemas import ReviewCreate
-from app.modules.booking.models import Booking
 from app.core.enums import BookingState
 from app.core.errors import Conflict
 
-async def create_review(db: AsyncSession, booking: Booking, author_id: str, author_role: str, target_id: str, req: ReviewCreate) -> Review:
+async def create_review(db: AsyncSession, booking: Any, author_id: str, author_role: str, target_id: str, req: ReviewCreate) -> Review:
     if booking.booking_state != BookingState.SELESAI.value:
         raise Conflict("BOOKING_NOT_COMPLETED", "Booking belum selesai")
         

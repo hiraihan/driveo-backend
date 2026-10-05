@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from app.modules.availability.service import lock_slots, release_slots, block_dates, unblock_date, blocked_vehicle_ids
 from app.modules.availability.models import VehicleAvailability
 from app.core.errors import Conflict
-from tests.factories import make_user, make_rental, make_vehicle, auth_header
+from tests.factories import make_user, make_rental, make_vehicle, make_listing, make_booking, auth_header
 from app.core.enums import SlotStatus
 
 @pytest.mark.asyncio
@@ -12,12 +12,14 @@ async def test_lock_conflict_on_overlap(db):
     u = await make_user(db)
     r = await make_rental(db, u)
     v = await make_vehicle(db, r)
-    
-    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 3), "b1")
+    l = await make_listing(db, v)
+    b1 = await make_booking(db, u, l)
+    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 3), b1.id)
     await db.commit()
     
     with pytest.raises(Conflict) as exc:
-        await lock_slots(db, v.id, date(2026, 12, 3), date(2026, 12, 5), "b2")
+        b2 = await make_booking(db, u, l)
+        await lock_slots(db, v.id, date(2026, 12, 3), date(2026, 12, 5), b2.id)
     assert exc.value.code == "SLOT_UNAVAILABLE"
     
     # ensure no partial rows for b2
@@ -29,12 +31,13 @@ async def test_release_only_own_booking(db):
     u = await make_user(db)
     r = await make_rental(db, u)
     v = await make_vehicle(db, r)
-    
-    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 2), "b1")
+    l = await make_listing(db, v)
+    b1 = await make_booking(db, u, l)
+    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 2), b1.id)
     await block_dates(db, v.id, [date(2026, 12, 3)])
     await db.commit()
     
-    released = await release_slots(db, "b1")
+    released = await release_slots(db, b1.id)
     assert released == 2
     
     # 3 Dec should remain
@@ -73,7 +76,9 @@ async def test_unblock_booked_day_409(client, db):
     v = await make_vehicle(db, r)
     h = auth_header(u)
     
-    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 1), "b1")
+    l = await make_listing(db, v)
+    b1 = await make_booking(db, u, l)
+    await lock_slots(db, v.id, date(2026, 12, 1), date(2026, 12, 1), b1.id)
     await db.commit()
     
     res = await client.delete(f"/vehicles/{v.id}/blocks/2026-12-01", headers=h)
@@ -86,8 +91,9 @@ async def test_blocked_vehicle_ids_range(db):
     r = await make_rental(db, u)
     v1 = await make_vehicle(db, r)
     v2 = await make_vehicle(db, r)
-    
-    await lock_slots(db, v1.id, date(2026, 12, 1), date(2026, 12, 3), "b1")
+    l = await make_listing(db, v1)
+    b1 = await make_booking(db, u, l)
+    await lock_slots(db, v1.id, date(2026, 12, 1), date(2026, 12, 3), b1.id)
     await block_dates(db, v2.id, [date(2026, 12, 5)])
     await db.commit()
     

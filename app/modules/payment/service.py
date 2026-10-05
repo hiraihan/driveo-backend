@@ -6,7 +6,7 @@ from app.modules.payment.schemas import MidtransNotification
 from app.core.config import get_settings
 from app.core.enums import PaymentType, PaymentStatus, BookingState, BookingEvent, EscrowState
 from app.core.errors import Conflict, NotFound, Unauthorized, ValidationFailed
-from app.modules.booking.models import Booking
+from app.models import Booking
 from app.modules.payment import escrow
 from app.modules.booking.state import transition
 from app.core.time import utcnow
@@ -120,7 +120,7 @@ async def handle_notification(db: AsyncSession, payload: MidtransNotification, r
         # But we don't have user eagerly loaded. Let's do it if needed.
         # It says "notify penyewa" -> we need user email.
         # For simplicity in tests, assume user is joined or we fetch user.
-        from app.modules.user.models import User
+        from app.models import User
         u_stmt = select(User).where(User.id == booking.user_id)
         user = (await db.execute(u_stmt)).scalar_one_or_none()
         if user:

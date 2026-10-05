@@ -77,3 +77,4 @@ skills/
 
 # Local documentation/generated files
 *.local.*
+*.db

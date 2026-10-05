@@ -5,8 +5,7 @@ from sqlalchemy.future import select
 from app.core.database import get_db
 from app.core.errors import Conflict, Unauthorized
 from app.core.enums import UserRole
-from app.modules.user.models import User
-from app.modules.user.service import get_or_create_role
+from app.modules.user.service import get_or_create_role, get_user_by_email, create_user, get_user_role
 from app.modules.auth.schemas import RegisterRequest, UserResponse, TokenResponse, RefreshRequest
 from app.modules.auth.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
 from app.core.ids import new_id
@@ -15,25 +14,17 @@ router = APIRouter()
 
 @router.post("/register", status_code=201, response_model=UserResponse)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == req.email))
-    if result.scalars().first():
-        raise Conflict("EMAIL_TAKEN", "Email sudah digunakan")
-    
-    role = await get_or_create_role(db, UserRole.PENYEWA)
-    user = User(id=new_id(), email=req.email, password_hash=hash_password(req.password), role_id=role.id)
-    db.add(user)
+    user = await create_user(db, req.email, hash_password(req.password), UserRole.PENYEWA)
     await db.commit()
     await db.refresh(user)
     return UserResponse(id=user.id, email=user.email, role=UserRole.PENYEWA.value)
 
 @router.post("/login", response_model=TokenResponse)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalars().first()
+    user = await get_user_by_email(db, form_data.username)
     if not user or not verify_password(form_data.password, user.password_hash):
         raise Unauthorized("INVALID_CREDENTIALS", "Email atau password salah")
     
-    from app.modules.user.service import get_user_role
     role = await get_user_role(db, user)
     
     return TokenResponse(

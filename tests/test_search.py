@@ -1,6 +1,6 @@
 import pytest
 from datetime import date
-from tests.factories import make_user, make_rental, make_vehicle, make_listing
+from tests.factories import make_user, make_rental, make_vehicle, make_listing, make_booking
 from app.core.enums import ListingStatus
 from app.modules.availability.service import lock_slots
 
@@ -10,8 +10,8 @@ async def test_excludes_booked_vehicle_in_range(client, db):
     r = await make_rental(db, u)
     v = await make_vehicle(db, r)
     l = await make_listing(db, v)
-    
-    await lock_slots(db, v.id, date(2026, 12, 2), date(2026, 12, 2), "b1")
+    b1 = await make_booking(db, u, l)
+    await lock_slots(db, v.id, date(2026, 12, 2), date(2026, 12, 2), b1.id)
     await db.commit()
     
     # 1-3 Dec should exclude

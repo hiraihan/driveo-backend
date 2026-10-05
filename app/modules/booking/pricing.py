@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from datetime import date
 from math import floor, ceil
-from app.modules.admin.models import Promo
+from typing import Protocol, Optional
+
+class PromoProtocol(Protocol):
+    discount_percent: float
+    max_discount_amount: int
 
 @dataclass(frozen=True)
 class Quote:
@@ -13,7 +17,7 @@ class Quote:
     dp: int
     sisa: int
 
-def quote(harga_per_hari: int, tanggal_mulai: date, tanggal_selesai: date, promo: Promo | None, dp_percent: float) -> Quote:
+def quote(harga_per_hari: int, tanggal_mulai: date, tanggal_selesai: date, promo: Optional[PromoProtocol], dp_percent: float) -> Quote:
     hari = (tanggal_selesai - tanggal_mulai).days + 1
     subtotal = harga_per_hari * hari
     diskon = 0
