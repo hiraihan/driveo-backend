@@ -10,7 +10,6 @@ from app.modules.auth.routers import router as auth_router
 from app.modules.user.routers import router as user_router
 from app.modules.rental.routers import router as rental_router
 from app.modules.vehicle.routers import router as vehicle_router
-from app.modules.availability.routers import router as availability_router
 from app.modules.listing.routers import router as listing_router
 from app.modules.search.routers import router as search_router
 from app.modules.booking.routers import router as booking_router
@@ -54,10 +53,6 @@ def create_app() -> FastAPI:
     api_router.include_router(user_router, prefix="/users", tags=["users"])
     api_router.include_router(rental_router, prefix="/rentals", tags=["rentals"])
     api_router.include_router(vehicle_router, prefix="/vehicles", tags=["vehicles"])
-    # Delete availability router here if it fails, but I will keep it until Task 5 deletes it, or remove it now? 
-    # The instructions say "Modify: app/main.py (drop availability router)" in Task 5. 
-    # For now I include it to avoid breaking tests. Wait, if I include it, it works.
-    api_router.include_router(availability_router, prefix="/availability", tags=["availability"])
     api_router.include_router(listing_router, prefix="/listings", tags=["listings"])
     api_router.include_router(search_router, prefix="/search", tags=["search"])
     api_router.include_router(booking_router, prefix="/bookings", tags=["bookings"])

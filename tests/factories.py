@@ -13,6 +13,9 @@ async def make_user(db, role: UserRole = UserRole.PENYEWA, email: str | None = N
     await db.refresh(u)
     return u
 
+async def make_admin(db, email: str | None = None) -> User:
+    return await make_user(db, role=UserRole.ADMIN, email=email)
+
 def auth_header(user: User, role: UserRole | None = None) -> dict:
     token = create_access_token(user.id, role or UserRole.PENYEWA)
     return {"Authorization": f"Bearer {token}"}

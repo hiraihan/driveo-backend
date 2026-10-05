@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.modules.review.models import Review
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -14,8 +14,8 @@ class ReviewCreate(BaseModel):
     komentar: str
 
 @router.post("")
-async def create_review(req: ReviewCreate, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    review = Review(user_id=current_user["sub"], **req.dict())
+async def create_review(req: ReviewCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    review = Review(user_id=current_user.id, **req.dict())
     db.add(review)
     await db.commit()
     return {"message": "Review added"}

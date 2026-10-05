@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.database import get_db
 from app.modules.vehicle.models import Vehicle
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 from typing import List
 
@@ -22,8 +22,8 @@ class VehicleResponse(VehicleCreate):
     status: str
 
 @router.post("", response_model=VehicleResponse, status_code=201)
-async def create_vehicle(req: VehicleCreate, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.get("role") not in ["Admin", "Rental"]:
+async def create_vehicle(req: VehicleCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role not in ["Admin", "Rental"]:
         raise HTTPException(status_code=403, detail="Not permitted")
     
     vehicle = Vehicle(**req.dict())

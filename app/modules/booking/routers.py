@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.modules.booking.models import Booking
 from app.modules.vehicle.models import VehicleAvailability
 from app.modules.booking.state import process_cancellation
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 from datetime import date, timedelta
 from typing import List
@@ -24,7 +24,7 @@ class BookingCreate(BaseModel):
     promo_code: str = None
 
 @router.post("", status_code=201)
-async def create_booking(req: BookingCreate, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_booking(req: BookingCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     # 1. Pengecekan Ketersediaan Kalender (Atomic Slot Lock)
     query = select(VehicleAvailability).where(
         VehicleAvailability.vehicle_id == req.vehicle_id,
@@ -59,19 +59,19 @@ async def create_booking(req: BookingCreate, current_user: dict = Depends(get_cu
             req.total_nilai -= discount
             req.sisa = req.total_nilai - req.dp
 
-    booking = Booking(user_id=current_user["sub"], **req.dict())
+    booking = Booking(user_id=current_user.id, **req.dict())
     db.add(booking)
     await db.commit()
     await db.refresh(booking)
     return booking
 
 @router.get("")
-async def get_my_bookings(current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Booking).where(Booking.user_id == current_user["sub"]))
+async def get_my_bookings(current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Booking).where(Booking.user_id == current_user.id))
     return result.scalars().all()
 
 @router.post("/{booking_id}/cancel")
-async def cancel_booking(booking_id: str, alasan: str, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def cancel_booking(booking_id: str, alasan: str, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Booking).where(Booking.id == booking_id))
     booking = result.scalars().first()
     if not booking:

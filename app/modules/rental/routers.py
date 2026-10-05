@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.modules.rental.models import Rental, RentalPayoutAccount, RentalStaff
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -16,7 +16,7 @@ class OnboardRequest(BaseModel):
     payout_account: str
 
 @router.post("/onboard", status_code=201)
-async def onboard_rental(req: OnboardRequest, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def onboard_rental(req: OnboardRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     # Mock encryption for payout account
     encrypted_payout = f"ENCRYPTED_{req.payout_account}"
     
@@ -25,7 +25,7 @@ async def onboard_rental(req: OnboardRequest, current_user: dict = Depends(get_c
     await db.flush()
     
     payout = RentalPayoutAccount(rental_id=rental.id, encrypted_account_info=encrypted_payout)
-    staff = RentalStaff(rental_id=rental.id, user_id=current_user["sub"], role="Admin")
+    staff = RentalStaff(rental_id=rental.id, user_id=current_user.id, role="Admin")
     
     db.add(payout)
     db.add(staff)
@@ -40,8 +40,8 @@ class VerifyRequest(BaseModel):
     alasan: str
 
 @router.post("/{rental_id}/verify")
-async def verify_rental(rental_id: str, req: VerifyRequest, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.get("role") != "Admin":
+async def verify_rental(rental_id: str, req: VerifyRequest, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "Admin":
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Not enough permissions")
         
@@ -52,11 +52,11 @@ async def verify_rental(rental_id: str, req: VerifyRequest, current_user: dict =
         raise HTTPException(status_code=404, detail="Rental not found")
         
     rental.status_verifikasi = req.status
-    verif = RentalVerification(rental_id=rental.id, hasil=req.status, alasan=req.alasan, reviewer_id=current_user["sub"])
+    verif = RentalVerification(rental_id=rental.id, hasil=req.status, alasan=req.alasan, reviewer_id=current_user.id)
     db.add(verif)
     await db.commit()
     
     audit_port = MockAuditPort()
-    audit_port.log_event("RENTAL_VERIFIED", {"rental_id": rental.id, "status": req.status, "reviewer": current_user["sub"]})
+    audit_port.log_event("RENTAL_VERIFIED", {"rental_id": rental.id, "status": req.status, "reviewer": current_user.id})
     
     return {"message": "Verification recorded"}

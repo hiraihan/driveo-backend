@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.database import get_db
 from app.modules.listing.models import Listing
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, CurrentUser
 from pydantic import BaseModel
 from typing import List
 
@@ -20,7 +20,7 @@ class ListingResponse(ListingCreate):
     status_publikasi: str
 
 @router.post("", response_model=ListingResponse, status_code=201)
-async def create_listing(req: ListingCreate, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_listing(req: ListingCreate, current_user: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     listing = Listing(**req.dict())
     db.add(listing)
     await db.commit()
