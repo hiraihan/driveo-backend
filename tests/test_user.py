@@ -11,7 +11,7 @@ def create_mock_token(user_id: str, role: str):
     to_encode = {"sub": user_id, "role": role, "exp": expire}
     return jwt.encode(to_encode, "test_secret_key", algorithm="HS256")
 
-async def test_get_and_update_user_profile():
+async def test_get_and_update_user_profile(client):
     from app.modules.user.models import User
     from app.core.database import async_session
     
@@ -24,11 +24,11 @@ async def test_get_and_update_user_profile():
 
     token = create_mock_token(user_id, "Penyewa")
     
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.get("/users/me", headers={"Authorization": f"Bearer {token}"})
-        assert response.status_code == 200
-        assert response.json()["email"] == "me@example.com"
-        
-        # Give consent (BR-040)
-        consent_response = await ac.post("/users/me/consents", headers={"Authorization": f"Bearer {token}"}, json={"document_type": "KTP", "version": "1.0"})
-        assert consent_response.status_code == 201
+    ac = client
+    response = await ac.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    assert response.json()["email"] == "me@example.com"
+    
+    # Give consent (BR-040)
+    consent_response = await ac.post("/users/me/consents", headers={"Authorization": f"Bearer {token}"}, json={"document_type": "KTP", "version": "1.0"})
+    assert consent_response.status_code == 201

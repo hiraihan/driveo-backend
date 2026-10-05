@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 import uuid
 from app.modules.review.models import Review
 
-async def test_review_model():
+async def test_review_model(client):
     from app.core.database import async_session
     
     async with async_session() as session:

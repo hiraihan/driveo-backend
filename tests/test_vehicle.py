@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from datetime import date
 import uuid
 
-async def test_vehicle_models_and_availability():
+async def test_vehicle_models_and_availability(client):
     from app.core.database import async_session
     
     rental_id = str(uuid.uuid4())
@@ -26,7 +26,7 @@ async def test_vehicle_models_and_availability():
         a = result.scalars().first()
         assert a.status == "tersedia"
 
-async def test_listing_model():
+async def test_listing_model(client):
     from app.core.database import async_session
     from app.modules.listing.models import Listing
     

@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 import uuid
 from datetime import date
 
-async def test_booking_state_machine():
+async def test_booking_state_machine(client):
     from app.core.database import async_session
     from app.modules.booking.models import Booking
     

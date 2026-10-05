@@ -5,7 +5,7 @@ import pytest_asyncio
 from app.core.database import Base, engine
 from sqlalchemy.future import select
 
-async def test_verification_and_audit():
+async def test_verification_and_audit(client):
     from app.core.database import async_session
     from app.modules.verification.models import Verification
     from app.modules.audit.models import AuditLog

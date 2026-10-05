@@ -4,7 +4,7 @@ import pytest_asyncio
 from app.core.database import Base, engine
 from sqlalchemy.future import select
 
-async def test_promo_and_membership():
+async def test_promo_and_membership(client):
     from app.core.database import async_session
     from app.modules.admin.models import MembershipPlan, Promo
     from datetime import date, timedelta

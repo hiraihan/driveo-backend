@@ -11,7 +11,7 @@ def create_mock_token(user_id: str, role: str):
     to_encode = {"sub": user_id, "role": role, "exp": expire}
     return jwt.encode(to_encode, "test_secret_key", algorithm="HS256")
 
-async def test_rental_verification():
+async def test_rental_verification(client):
     from app.modules.rental.models import Rental
     from app.core.database import async_session
     
@@ -23,16 +23,16 @@ async def test_rental_verification():
 
     token = create_mock_token("admin-user-id", "Admin")
     
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post(f"/rentals/{rental_id}/verify", headers={"Authorization": f"Bearer {token}"}, json={
-            "status": "LOLOS",
-            "alasan": "Semua dokumen valid"
-        })
-        assert response.status_code == 200
-        
-        # Verify status changed
-        async with async_session() as session2:
-            from sqlalchemy.future import select
-            result = await session2.execute(select(Rental).where(Rental.id == rental_id))
-            r = result.scalars().first()
-            assert r.status_verifikasi == "LOLOS"
+    ac = client
+    response = await ac.post(f"/rentals/{rental_id}/verify", headers={"Authorization": f"Bearer {token}"}, json={
+        "status": "LOLOS",
+        "alasan": "Semua dokumen valid"
+    })
+    assert response.status_code == 200
+    
+    # Verify status changed
+    async with async_session() as session2:
+        from sqlalchemy.future import select
+        result = await session2.execute(select(Rental).where(Rental.id == rental_id))
+        r = result.scalars().first()
+        assert r.status_verifikasi == "LOLOS"

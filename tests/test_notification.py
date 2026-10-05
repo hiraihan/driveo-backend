@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from app.modules.notification.models import Notification
 from app.modules.notification.service import NotificationService
 
-async def test_notification_service():
+async def test_notification_service(client):
     from app.core.database import async_session
     async with async_session() as session:
         service = NotificationService(session)

@@ -11,7 +11,7 @@ def create_mock_token(user_id: str, role: str):
     to_encode = {"sub": user_id, "role": role, "exp": expire}
     return jwt.encode(to_encode, "test_secret_key", algorithm="HS256")
 
-async def test_rental_onboarding():
+async def test_rental_onboarding(client):
     from app.modules.user.models import User
     from app.core.database import async_session
     
@@ -23,16 +23,16 @@ async def test_rental_onboarding():
 
     token = create_mock_token(user_id, "Penyewa")
     
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post("/rentals/onboard", headers={"Authorization": f"Bearer {token}"}, json={
-            "nama_usaha": "Rental Jaya",
-            "nib": "123456789",
-            "alamat": "Jl. Test No. 1",
-            "kontak": "08123456789",
-            "payout_account": "1234567890"
-        })
-        assert response.status_code == 201
-        
-        # Verify the role of the user was updated to Rental or that they are recorded as staff
-        # We'll just verify the rental was created via a GET request (assume we have one, or just check DB directly in a real test)
-        assert response.json()["nama_usaha"] == "Rental Jaya"
+    ac = client
+    response = await ac.post("/rentals/onboard", headers={"Authorization": f"Bearer {token}"}, json={
+        "nama_usaha": "Rental Jaya",
+        "nib": "123456789",
+        "alamat": "Jl. Test No. 1",
+        "kontak": "08123456789",
+        "payout_account": "1234567890"
+    })
+    assert response.status_code == 201
+    
+    # Verify the role of the user was updated to Rental or that they are recorded as staff
+    # We'll just verify the rental was created via a GET request (assume we have one, or just check DB directly in a real test)
+    assert response.json()["nama_usaha"] == "Rental Jaya"

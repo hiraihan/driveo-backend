@@ -1,34 +1,12 @@
-import sys
-import os
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import get_settings
+from app.core.database import engine
+from app.models import Base
+from app.core.errors import register_error_handlers
 
-import asyncio
-from sqlalchemy.future import select
-from datetime import datetime, timedelta
-from app.modules.booking.models import Booking
-from app.modules.admin.models import MembershipPlan, Promo
-from app.modules.booking.state import process_cancellation
-
-async def cancel_expired_bookings():
-    while True:
-        await asyncio.sleep(60) # Run every minute
-        from app.core.database import async_session
-        async with async_session() as session:
-            # Check for MENUNGGU_DP older than 1 hour
-            expire_limit = datetime.utcnow() - timedelta(hours=1)
-            query = select(Booking).where(Booking.booking_state == "MENUNGGU_DP", Booking.created_at < expire_limit)
-            result = await session.execute(query)
-            expired = result.scalars().all()
-            for b in expired:
-                process_cancellation(b, "Batal Otomatis (Waktu Habis)")
-                print(f"Auto-cancelled booking {b.id}")
-            if expired:
-                await session.commit()
-
-from fastapi import FastAPI
 from app.modules.auth.routers import router as auth_router
-
-app = FastAPI(title="DriveO Backend")
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
 from app.modules.user.routers import router as user_router
 from app.modules.rental.routers import router as rental_router
 from app.modules.vehicle.routers import router as vehicle_router
@@ -41,27 +19,60 @@ from app.modules.verification.routers import router as verification_router
 from app.modules.review.routers import router as review_router
 from app.modules.admin.routers import router as admin_router
 from app.modules.notification.routers import router as notification_router
-app.include_router(user_router, prefix="/users", tags=["users"])
-app.include_router(rental_router, prefix="/rentals", tags=["rentals"])
-app.include_router(vehicle_router, prefix="/vehicles", tags=["vehicles"])
-app.include_router(availability_router, prefix="/availability", tags=["availability"])
-app.include_router(listing_router, prefix="/listings", tags=["listings"])
-app.include_router(search_router, prefix="/search", tags=["search"])
-app.include_router(booking_router, prefix="/bookings", tags=["bookings"])
-app.include_router(payment_router, prefix="/payments", tags=["payments"])
-app.include_router(verification_router, prefix="/verifications", tags=["verifications"])
-app.include_router(review_router, prefix="/reviews", tags=["reviews"])
-app.include_router(admin_router, prefix="/admin", tags=["admin"])
-app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
 
-from app.core.database import engine, Base
-@app.on_event("startup")
-async def startup():
+settings = get_settings()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    asyncio.create_task(cancel_expired_bookings())
-    try:
-        from seed import seed_data
-        await seed_data()
-    except Exception as e:
-        print('Seed error:', e)
+    if settings.seed_on_startup:
+        try:
+            from seed import seed_data
+            from app.core.database import async_session
+            async with async_session() as session:
+                await seed_data(session)
+        except Exception as e:
+            print('Seed error:', e)
+    yield
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="DriveO Backend", lifespan=lifespan)
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    register_error_handlers(app)
+    
+    api_router = APIRouter(prefix="/api/v1")
+    api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+    api_router.include_router(user_router, prefix="/users", tags=["users"])
+    api_router.include_router(rental_router, prefix="/rentals", tags=["rentals"])
+    api_router.include_router(vehicle_router, prefix="/vehicles", tags=["vehicles"])
+    # Delete availability router here if it fails, but I will keep it until Task 5 deletes it, or remove it now? 
+    # The instructions say "Modify: app/main.py (drop availability router)" in Task 5. 
+    # For now I include it to avoid breaking tests. Wait, if I include it, it works.
+    api_router.include_router(availability_router, prefix="/availability", tags=["availability"])
+    api_router.include_router(listing_router, prefix="/listings", tags=["listings"])
+    api_router.include_router(search_router, prefix="/search", tags=["search"])
+    api_router.include_router(booking_router, prefix="/bookings", tags=["bookings"])
+    api_router.include_router(payment_router, prefix="/payments", tags=["payments"])
+    api_router.include_router(verification_router, prefix="/verifications", tags=["verifications"])
+    api_router.include_router(review_router, prefix="/reviews", tags=["reviews"])
+    api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
+    api_router.include_router(notification_router, prefix="/notifications", tags=["notifications"])
+    
+    @api_router.get("/health")
+    async def health():
+        return {"status": "ok"}
+        
+    app.include_router(api_router)
+    
+    return app
+
+app = create_app()

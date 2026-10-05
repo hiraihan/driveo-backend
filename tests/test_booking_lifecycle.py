@@ -6,7 +6,7 @@ import uuid
 from datetime import date
 from app.modules.booking.models import Booking
 
-async def test_booking_cancel():
+async def test_booking_cancel(client):
     from app.core.database import async_session
     from app.modules.booking.state import process_cancellation
     

@@ -4,7 +4,7 @@ import pytest_asyncio
 from app.core.database import Base, engine
 from sqlalchemy.future import select
 
-async def test_payment_and_escrow():
+async def test_payment_and_escrow(client):
     from app.core.database import async_session
     from app.modules.payment.models import Payment
     from app.modules.payment.models import EscrowLedger
