@@ -1,33 +1,26 @@
-from typing import Dict, Any
-
-class MockPaymentReadPort:
-    def get_status(self, payment_id: str) -> str:
-        return "BERHASIL"
+from app.contracts.ports import *
+from app.core.enums import VerificationStatus, RentalStatus, EscrowState
 
 class MockAuditPort:
-    def log_event(self, event_name: str, payload: Dict[str, Any]) -> None:
-        print(f"AUDIT LOG: {event_name} - {payload}")
-
-class MockEscrowReadPort:
-    def get_state(self, booking_id: str) -> str:
-        return "LUNAS"
-
-class MockVerificationReadPort:
-    def get_status(self, user_id: str) -> str:
-        return "TERVERIFIKASI"
-
-class MockRefundPort:
-    def trigger_refund(self, booking_id: str, amount: float) -> str:
-        return "REFUND_SUCCESS"
+    async def log_event(self, event_name: str, payload: dict, actor_id: str | None = None) -> None:
+        pass
 
 class MockNotificationPort:
-    def send(self, recipient: str, message: str) -> None:
-        print(f"NOTIFICATION to {recipient}: {message}")
+    async def send(self, recipient: str, message: str, subject: str | None = None, channel: str = "EMAIL") -> None:
+        pass
 
-class MockBookingPort:
-    def get_booking(self, booking_id: str) -> Dict[str, Any]:
-        return {"id": booking_id, "status": "MENUNGGU_DP", "total_nilai": 1000000, "dp": 300000}
+class MockVerificationReadPort:
+    async def get_status(self, user_id: str) -> VerificationStatus:
+        return VerificationStatus.TERVERIFIKASI
 
 class MockRentalReadPort:
-    def get_rental_status(self, rental_id: str) -> str:
-        return "LOLOS"
+    async def get_rental_status(self, rental_id: str) -> RentalStatus:
+        return RentalStatus.LOLOS
+
+class MockRefundPort:
+    async def trigger_refund(self, booking_id: str, amount: int, reason: str) -> str:
+        return "REFUND_123"
+
+class MockEscrowReadPort:
+    async def get_state(self, booking_id: str) -> EscrowState:
+        return EscrowState.LUNAS
